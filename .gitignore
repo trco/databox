@@ -1,0 +1,4 @@
+*.pyc
+__pycache__
+/box/
+db.sqlite3

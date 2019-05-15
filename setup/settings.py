@@ -38,6 +38,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'integrations',
+    'pages',
+    'widget_tweaks',
+    'bootstrap_modal_forms',
 ]
 
 MIDDLEWARE = [
@@ -102,6 +105,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+LOGIN_REDIRECT_URL = 'login_redirection'
+LOGOUT_REDIRECT_URL = 'index'
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
@@ -120,6 +126,20 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
+# Static files (CSS, JavaScript, Images)
+STATICFILES_FINDERS = [
+    # searches in STATICFILES_DIRS
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    # searches in STATIC subfolder of each app
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
 STATIC_URL = '/static/'
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
+
+STATIC_ROOT = os.path.join(BASE_DIR, "static_files")
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'

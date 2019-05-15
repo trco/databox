@@ -1,6 +1,9 @@
 from requests_oauthlib import OAuth2Session
 
 from django.shortcuts import render, redirect
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+from django.contrib import messages
 
 from .models import GoogleOAuth2Token
 
@@ -51,4 +54,10 @@ def callback_google(request):
         user=request.user, access_token=token['access_token'],
         expires=token['expires_at'], refresh_token=token['refresh_token'])
 
-    return render(request, 'integrations/test.html', {'token': token})
+    messages.success(request, 'Google Analytics succesfully connected.')
+
+    return HttpResponseRedirect(reverse(
+            'user_profile',
+            args=[request.user.username]
+        )
+    )

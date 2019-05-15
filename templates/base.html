@@ -1,0 +1,35 @@
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}Databox{% endblock title %}</title>
+
+    <!-- sytlesheets -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'fonts/font-awesome-4.7.0/css/font-awesome.min.css' %}">
+    <!-- favicon -->
+    <link rel="shortcut icon" type="image/png" href="{% static 'favicon.png' %}"/>
+    {% block extrastylesheets %}{% endblock extrastylesheets %}
+  </head>
+
+  <body>
+
+    <!-- header -->
+    {% include "_header.html" %}
+
+    <!-- content -->
+    {% block content %}{% endblock content %}
+
+    <!-- javascript -->
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <script src="{% static 'js/popper.min.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <!-- custom javascript -->
+    {% block extrascripts %}{% endblock extrascripts %}
+  </body>
+
+</html>

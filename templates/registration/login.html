@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block content %}
+
+<div class="container">
+  <div class="row justify-content-center">
+    <section class="col-lg-4 text-center">
+
+      <h1 class="mt-5 mb-4">Log in</h1>
+
+      <article class="mb-5">
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="{% if form.non_field_errors %}invalid{% endif %} mb-2">
+            {% for error in form.non_field_errors %}
+              {{ error }}
+            {% endfor %}
+          </div>
+
+          {% for field in form %}
+            <div class="form-group">
+              {% render_field field class="form-control" placeholder=field.label %}
+              <div class="{% if field.errors %} invalid{% endif %}">
+                {% for error in field.errors %}
+                  <p class="help-block">{{ error }}</p>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+
+          <div>
+            <button type="submit" class="submit-btn btn btn-primary" formnovalidate="formnovalidate">Log in</button>
+          </div>
+
+        </form>
+      </article>
+
+    </section>
+  </div>
+</div>
+
+{% endblock content %}

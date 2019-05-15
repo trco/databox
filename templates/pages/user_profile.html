@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+  <div class="row justify-content-center">
+    <section class="col-lg-4 text-center">
+
+      <h1 class="mt-5 mb-4"><strong>{{ user.username }}'s</strong> Dashboard</h1>
+
+      <article class="mb-5">
+        <p>Your connected APIs:</p>
+        <div>
+          Google Analytics
+          {% if not google_authorized %}
+            <a href="{% url 'authorize_google' %}">Connect</a>
+          {% else %}
+            <strong>Connected</strong>
+          {% endif %}
+        </div>
+        <div>
+          GitHub
+        </div>
+      </article>
+
+    </section>
+  </div>
+</div>
+
+{% endblock content %}

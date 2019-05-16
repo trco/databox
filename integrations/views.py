@@ -1,7 +1,10 @@
 from requests_oauthlib import OAuth2Session
+from databox import Client
+
+import requests
 
 from django.shortcuts import render, redirect
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from django.contrib import messages
 
@@ -50,6 +53,8 @@ def callback_google(request):
         client_secret=client_secret
     )
 
+    print(oauth.get('https://www.googleapis.com/oauth2/v1/userinfo'))
+
     GoogleOAuth2Token.objects.create(
         user=request.user, access_token=token['access_token'],
         expires=token['expires_at'], refresh_token=token['refresh_token'])
@@ -61,3 +66,18 @@ def callback_google(request):
             args=[request.user.username]
         )
     )
+
+
+def fetch_push_data(request):
+    token = GoogleOAuth2Token.objects.get(user=request.user)
+    headers = {'Authorization': 'Bearer ' + token.access_token}
+    user_info = requests.get('https://www.googleapis.com/oauth2/v1/userinfo', headers=headers).json()
+
+    data = int(user_info['id'])
+
+    client = Client('sjq01fw3zq95c1aeuj6yw')
+    test = client.push('data4', 180)
+
+    print(test)
+
+    return JsonResponse(user_info, safe=False)

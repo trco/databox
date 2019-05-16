@@ -18,4 +18,5 @@ urlpatterns = [
     path('callback/google',
          integrations_views.callback_google,
          name='callback_google'),
+    path('fetch/', integrations_views.fetch_push_data, name='fetch_push_data'),
 ]

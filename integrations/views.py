@@ -1,12 +1,11 @@
-from requests_oauthlib import OAuth2Session
 from databox import Client
-
 import requests
+from requests_oauthlib import OAuth2Session
 
-from django.shortcuts import render, redirect
-from django.http import HttpResponseRedirect, JsonResponse
-from django.urls import reverse
 from django.contrib import messages
+from django.http import HttpResponseRedirect, JsonResponse
+from django.shortcuts import render, redirect
+from django.urls import reverse
 
 from .models import GoogleOAuth2Token
 
@@ -16,13 +15,12 @@ redirect_uri = 'http://127.0.0.1:8000/callback/google'
 
 
 def authorize_google(request):
-    # Check if authorization already saved
+    # Check if GoogleOAuth2Token for user already exists
     authorization = GoogleOAuth2Token.objects.filter(user=request.user)
 
     if not authorization:
         scope = [
-            'https://www.googleapis.com/auth/userinfo.email',
-            'https://www.googleapis.com/auth/userinfo.profile'
+            'https://www.googleapis.com/auth/analytics.readonly'
         ]
 
         oauth = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
@@ -37,7 +35,12 @@ def authorize_google(request):
 
         return redirect(authorization_url)
     else:
-        return render(request, 'integrations/already_authorized.html')
+        messages.warning(request, 'Google Analytics already connected!')
+        return HttpResponseRedirect(reverse(
+                'user_profile',
+                args=[request.user.username]
+            )
+        )
 
 
 def callback_google(request):
@@ -52,12 +55,23 @@ def callback_google(request):
         authorization_response=request.build_absolute_uri(),
         client_secret=client_secret
     )
+    # print(oauth.get('https://www.googleapis.com/oauth2/v1/userinfo'))
+    print(token)
 
-    print(oauth.get('https://www.googleapis.com/oauth2/v1/userinfo'))
+    # Get user's Google Analytics profile id
+    headers = {'Authorization': 'Bearer ' + token['access_token']}
+    response = requests.get(
+        'https://www.googleapis.com/analytics/v3/management/accountSummaries',
+        headers=headers).json()
+    profile_id = response['items'][0]['webProperties'][0]['profiles'][0]['id']
 
     GoogleOAuth2Token.objects.create(
-        user=request.user, access_token=token['access_token'],
-        expires=token['expires_at'], refresh_token=token['refresh_token'])
+        user=request.user,
+        profile_id=profile_id,
+        access_token=token['access_token'],
+        expires=token['expires_at'],
+        refresh_token=token['refresh_token']
+    )
 
     messages.success(request, 'Google Analytics succesfully connected.')
 
@@ -68,16 +82,28 @@ def callback_google(request):
     )
 
 
-def fetch_push_data(request):
-    token = GoogleOAuth2Token.objects.get(user=request.user)
-    headers = {'Authorization': 'Bearer ' + token.access_token}
-    user_info = requests.get('https://www.googleapis.com/oauth2/v1/userinfo', headers=headers).json()
+def google_analytics_fetch_push_data(request):
+    # Get user's GoogleOAuth2Token
+    user_token = GoogleOAuth2Token.objects.get(user=request.user)
+    headers = {'Authorization': 'Bearer ' + user_token.access_token}
 
-    data = int(user_info['id'])
+    # Construct fetch_url
+    base = 'https://www.googleapis.com/analytics/v3/data/ga?'
+    profile = 'ids=ga:' + str(user_token.profile_id)
+    metrics = '&start-date=today&end-date=today&metrics=ga:users,ga:sessions,ga:pageviewsPerSession'
+    fetch_url = '{0}{1}{2}'.format(base, profile, metrics)
 
+    # Fetch data from user's Google Analytic profile
+    data = requests.get(fetch_url, headers=headers).json()
+    totals = data['totalsForAllResults']
+
+    # Push data to Databox
+    # TODO: Set today's date
     client = Client('sjq01fw3zq95c1aeuj6yw')
-    test = client.push('data4', 180)
+    client.insert_all([
+        {'key': 'GA Users', 'value': totals['ga:users'], 'date': '2019-02-16'},
+        {'key': 'GA Sessions', 'value': totals['ga:sessions'], 'date': '2019-02-16'},
+        {'key': 'GA Page Views Per Session', 'value': totals['ga:pageviewsPerSession'], 'date': '2019-02-16'},
+    ])
 
-    print(test)
-
-    return JsonResponse(user_info, safe=False)
+    return JsonResponse(data, safe=False)

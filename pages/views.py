@@ -4,9 +4,13 @@ from django.urls import reverse_lazy
 from django.views import generic
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 from integrations.models import GoogleOAuth2Token
+
+
+def redirection(request):
+    return redirect('http://127.0.0.1:8000/index')
 
 
 class Index(TemplateView):

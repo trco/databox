@@ -4,7 +4,7 @@ from requests_oauthlib import OAuth2Session
 
 from django.contrib import messages
 from django.http import HttpResponseRedirect, JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect
 from django.urls import reverse
 
 from .models import GoogleOAuth2Token
@@ -90,7 +90,7 @@ def google_analytics_fetch_push_data(request):
     # Construct fetch_url
     base = 'https://www.googleapis.com/analytics/v3/data/ga?'
     profile = 'ids=ga:' + str(user_token.profile_id)
-    metrics = '&start-date=today&end-date=today&metrics=ga:users,ga:sessions,ga:pageviewsPerSession'
+    metrics = '&start-date=today&end-date=today&metrics=ga:users,ga:sessions,ga:pageviewsPerSession,ga:bounces,ga:bounceRate'
     fetch_url = '{0}{1}{2}'.format(base, profile, metrics)
 
     # Fetch data from user's Google Analytic profile
@@ -104,6 +104,8 @@ def google_analytics_fetch_push_data(request):
         {'key': 'GA Users', 'value': totals['ga:users'], 'date': '2019-02-16'},
         {'key': 'GA Sessions', 'value': totals['ga:sessions'], 'date': '2019-02-16'},
         {'key': 'GA Page Views Per Session', 'value': totals['ga:pageviewsPerSession'], 'date': '2019-02-16'},
+        {'key': 'GA Bounces', 'value': totals['ga:bounces'], 'date': '2019-02-16'},
+        {'key': 'GA Bounce Rate', 'value': totals['ga:bounceRate'], 'date': '2019-02-16'},
     ])
 
     return JsonResponse(data, safe=False)

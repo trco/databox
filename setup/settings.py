@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'integrations',
     'pages',
     'widget_tweaks',
-    'bootstrap_modal_forms',
+    # 'celery',
 ]
 
 MIDDLEWARE = [
@@ -143,3 +143,4 @@ STATICFILES_DIRS = [
 STATIC_ROOT = os.path.join(BASE_DIR, "static_files")
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+CELERY_BROKER_URL = 'amqp://localhost'

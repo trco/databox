@@ -3,7 +3,7 @@ import requests
 from requests_oauthlib import OAuth2Session
 
 from django.contrib import messages
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse
 
@@ -14,16 +14,17 @@ client_secret = 'KbaxLRkzXiLktyyeLo1rMIey'
 redirect_uri = 'http://127.0.0.1:8000/callback/google'
 
 
+# Authorize access to Google Analytics account
 def authorize_google(request):
     # Check if GoogleOAuth2Token for user already exists
-    authorization = GoogleOAuth2Token.objects.filter(user=request.user)
+    authorized = GoogleOAuth2Token.objects.filter(user=request.user)
 
-    if not authorization:
-        scope = [
-            'https://www.googleapis.com/auth/analytics.readonly'
-        ]
-
-        oauth = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
+    if not authorized:
+        oauth = OAuth2Session(
+            client_id,
+            redirect_uri=redirect_uri,
+            scope=['https://www.googleapis.com/auth/analytics.readonly']
+        )
 
         authorization_url, state = oauth.authorization_url(
             'https://accounts.google.com/o/oauth2/auth',
@@ -43,27 +44,56 @@ def authorize_google(request):
         )
 
 
-def callback_google(request):
+def get_token_and_profile_id(oauth_state, request):
     oauth = OAuth2Session(
         client_id,
-        state=request.session['oauth_state'],
+        state=oauth_state,
         redirect_uri=redirect_uri
     )
-
     token = oauth.fetch_token(
         'https://accounts.google.com/o/oauth2/token',
         authorization_response=request.build_absolute_uri(),
         client_secret=client_secret
     )
-    # print(oauth.get('https://www.googleapis.com/oauth2/v1/userinfo'))
-    print(token)
-
-    # Get user's Google Analytics profile id
     headers = {'Authorization': 'Bearer ' + token['access_token']}
     response = requests.get(
         'https://www.googleapis.com/analytics/v3/management/accountSummaries',
         headers=headers).json()
     profile_id = response['items'][0]['webProperties'][0]['profiles'][0]['id']
+    return token, profile_id
+
+
+# Get & create access token
+def callback_google(request):
+    try:
+        oauth_state = request.session['oauth_state']
+    except KeyError:
+        return HttpResponseBadRequest('Missing OAuth2 state.')
+
+    token, profile_id = get_token_and_profile_id(oauth_state, request)
+
+    # oauth = OAuth2Session(
+    #     client_id,
+    #     state=oauth_state,
+    #     redirect_uri=redirect_uri
+    # )
+    # token = oauth.fetch_token(
+    #     'https://accounts.google.com/o/oauth2/token',
+    #     authorization_response=request.build_absolute_uri(),
+    #     client_secret=client_secret
+    # )
+    # print(oauth.get('https://www.googleapis.com/oauth2/v1/userinfo'))
+    # print(token)
+
+    # Get user's Google Analytics profile id
+    # headers = {'Authorization': 'Bearer ' + token['access_token']}
+    # response = requests.get(
+    #     'https://www.googleapis.com/analytics/v3/management/accountSummaries',
+    #     headers=headers).json()
+    # profile_id = response['items'][0]['webProperties'][0]['profiles'][0]['id']
+
+    # profile_id = get_profile_id(token)
+    # print(profile_id)
 
     GoogleOAuth2Token.objects.create(
         user=request.user,

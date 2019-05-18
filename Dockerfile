@@ -1,11 +1,10 @@
-# Pull base image
 FROM python:3.6.8-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Set work directory
+# Set working directory
 WORKDIR /databox
 
 # Install dependencies
@@ -15,5 +14,3 @@ RUN pipenv install --system
 
 # Copy project
 COPY . /databox/
-
-CMD ["python", "manage.py", "runserver", "0.0.0.0", "8000"]

@@ -5,8 +5,7 @@ from integrations import views as integrations_views
 from pages import views as pages_views
 
 urlpatterns = [
-    path('', pages_views.redirection, name='redirection'),
-    path('index', pages_views.Index.as_view(), name='index'),
+    path('', pages_views.Index.as_view(), name='index'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('accounts/signup/', pages_views.SignUp.as_view(), name='signup'),
     path('login/redirection/', pages_views.login_redirection, name='login_redirection'),

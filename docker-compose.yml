@@ -5,15 +5,19 @@ services:
     image: postgres:10.1-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+  redis:
+      image: redis:alpine
   web:
+    restart: on-failure
     image: databox
     command: python /databox/manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/databox
     ports:
-      - "8000:8000"
+      - 8000:8000
     links:
       - db
+      - redis
     depends_on:
       - migration
   migration:
@@ -26,6 +30,24 @@ services:
       - db
     depends_on:
       - db
+  # Celery service starts celery worker, which executes defined Celery tasks
+  celery:
+    build: .
+    command: celery -A setup worker -l info
+    volumes:
+      - .:/databox
+    depends_on:
+      - db
+      - redis
+  # Celery beat service runs scheduled tasks defined in CELERY_BEAT_SCHEDULE in settings.py
+  celery-beat:
+    build: .
+    command: celery -A setup beat -l info
+    volumes:
+      - .:/databox
+    depends_on:
+      - db
+      - redis
 
 volumes:
   postgres_data:

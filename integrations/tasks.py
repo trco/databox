@@ -26,6 +26,7 @@ def google_analytics_fetch_push_data():
 
         # Fetch data from user's Google Analytics profile
         data = requests.get(fetch_url, headers=headers).json()
+        print(data)
         totals = data['totalsForAllResults']
 
         # Push data to Databox

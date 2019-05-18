@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from celery.schedules import crontab
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,7 +39,7 @@ INSTALLED_APPS = [
     'integrations',
     'pages',
     'widget_tweaks',
-    # 'celery',
+    'celery',
 ]
 
 MIDDLEWARE = [
@@ -160,4 +161,17 @@ STATICFILES_DIRS = [
 STATIC_ROOT = os.path.join(BASE_DIR, "static_files")
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-CELERY_BROKER_URL = 'amqp://localhost'
+
+# Celery settings
+CELERY_BROKER_URL = 'redis://redis:6379'
+CELERY_RESULT_BACKEND = 'redis://redis:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+# Schedule celery tasks with Celery beat
+CELERY_BEAT_SCHEDULE = {
+    'google_analytics_fetch_push_data': {
+        'task': 'integrations.tasks.google_analytics_fetch_push_data',
+        'schedule': crontab()  # Executes every minute
+    }
+}

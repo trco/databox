@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+
+<div class="container">
+  <div class="row justify-content-center">
+    <section class="col-lg-4 text-center">
+
+      <h1 class="mt-5 mb-4"><strong>{{ user.username }}'s</strong> Dashboard</h1>
+
+      <p>Select your <strong>Github</strong> repository to activate:</p>
+
+      <article class="mb-5">
+        <div class="row justify-content-center">
+
+          <form method="post">
+            {% csrf_token %}
+            <div class="col-lg-12 mb-3 text-left">
+
+              <div class="{% if form.non_field_errors %}invalid{% endif %} mb-2">
+                {% for error in form.non_field_errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+
+              {{ form.user.as_hidden }}
+
+              {% for choice in form.name %}
+                <div>{{ choice.tag }} {{ choice.choice_label }}</div>
+              {% endfor %}
+
+            </div>
+
+            <div class="col-lg-10 text-center">
+              <button type="submit" class="submit-btn btn btn-primary" formnovalidate="formnovalidate">Activate</button>
+            </div>
+          </form>
+
+        </div>
+      </article>
+
+    </section>
+  </div>
+</div>
+
+{% endblock content %}

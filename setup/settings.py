@@ -173,5 +173,9 @@ CELERY_BEAT_SCHEDULE = {
     'google_analytics_fetch_push': {
         'task': 'integrations.tasks.google_analytics_fetch_push',
         'schedule': crontab()  # Executes every minute
+    },
+    'github_fetch_push': {
+        'task': 'integrations.tasks.github_fetch_push',
+        'schedule': crontab()  # Executes every minute
     }
 }

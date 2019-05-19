@@ -5,7 +5,7 @@ from celery.decorators import periodic_task
 from databox import Client
 from requests_oauthlib import OAuth2Session
 
-from .models import GoogleOAuth2Token
+from .models import GoogleOAuth2Token, GithubOAuth2Token, GithubRepository
 
 client_id = '305201098664-3ve83l14nr1grpd0iejhr0ua32n4r4ks.apps.googleusercontent.com'
 client_secret = 'KbaxLRkzXiLktyyeLo1rMIey'
@@ -115,3 +115,45 @@ def google_analytics_fetch_push():
         push_id = push_data_to_databox(fetched_data)
 
         return fetched_data, 'push_id: {0}'.format(push_id)
+
+
+# -----------
+# Github task
+# -----------
+@periodic_task(
+    run_every=(crontab(minute='*/1')),  # TODO: Really needed?
+    name='github_fetch_push',  # TODO: Really needed?
+    # ignore_result=True
+)
+def github_fetch_push():
+    """Fetch data from Github and push them to Databox"""
+    tokens = GithubOAuth2Token.objects.all()
+
+    for user_token in tokens:
+        repository = GithubRepository.objects.get(user=user_token.user)
+        fetched_data = fetch_data_from_github(user_token, repository)
+        # push_id = push_data_to_databox(fetched_data)
+
+        return fetched_data, 'username: {0}'.format(user_token.username)
+
+
+def fetch_data_from_github(user_token, repository):
+    """Fetch data from user's Github profile"""
+    headers = {'Authorization': 'Bearer ' + user_token.access_token}
+
+    # Construct fetch_url
+    REPO = repository.name
+    USER = user_token.username
+    FETCH_URL = 'https://api.github.com/repos/{0}/{1}'.format(USER, REPO)
+
+    response = requests.get(FETCH_URL, headers=headers)
+    fetched_data = response.json()
+
+    print(fetched_data)
+
+    # data = fetched_data['totalsForAllResults']
+    # data = fetched_data['rows']
+
+    print('Fetching data...')
+
+    # return data

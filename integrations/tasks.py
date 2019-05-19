@@ -129,12 +129,16 @@ def github_fetch_push():
     """Fetch data from Github and push them to Databox"""
     tokens = GithubOAuth2Token.objects.all()
 
-    for user_token in tokens:
-        repository = GithubRepository.objects.get(user=user_token.user)
-        fetched_data = fetch_data_from_github(user_token, repository)
-        # push_id = push_data_to_databox(fetched_data)
+    fetched_data_list = []
 
-        return fetched_data, 'username: {0}'.format(user_token.username)
+    for user_token in tokens:
+        repositories = GithubRepository.objects.filter(user=user_token.user)
+        for repo in repositories:
+            fetched_data = fetch_data_from_github(user_token, repo)
+            fetched_data_list.append(fetched_data)
+            push_github_data_to_databox(fetched_data)
+
+    return fetched_data_list, 'username: {0}'.format(user_token.username)
 
 
 def fetch_data_from_github(user_token, repository):
@@ -152,8 +156,32 @@ def fetch_data_from_github(user_token, repository):
     print(fetched_data)
 
     # data = fetched_data['totalsForAllResults']
-    # data = fetched_data['rows']
+    data = {
+        'repo': REPO,
+        'forks_count': fetched_data['forks_count'],
+        'stargazers_count': fetched_data['stargazers_count'],
+        'watchers_count': fetched_data['watchers_count'],
+        'open_issues_count': fetched_data['open_issues_count'],
+        'subscribers_count': fetched_data['subscribers_count']
+    }
 
     print('Fetching data...')
 
-    # return data
+    return data
+
+
+def push_github_data_to_databox(fd):
+    """Push data to Databox"""
+    today = datetime.today().strftime('%Y-%m-%d')
+
+    response_id = client.insert_all([
+        {'key': fd['repo'] + ' forks_count', 'value': fd['forks_count'], 'date': today},
+        {'key': fd['repo'] + ' stargazers_count', 'value': fd['stargazers_count'], 'date': today},
+        {'key': fd['repo'] + ' watchers_count', 'value': fd['watchers_count'], 'date': today},
+        {'key': fd['repo'] + ' open_issues_count', 'value': fd['open_issues_count'], 'date': today},
+        {'key': fd['repo'] + ' subscribers_count', 'value': fd['subscribers_count'], 'date': today},
+    ])
+
+    print('Data pushed to Databox!')
+
+    return response_id

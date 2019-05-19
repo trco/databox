@@ -84,25 +84,25 @@ WSGI_APPLICATION = 'setup.wsgi.application'
 #     }
 # }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'postgres',
-#         'USER': 'postgres',
-#         'HOST': 'db',  # set in docker-compose.yml
-#         'PORT': 5432  # default postgres port
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'trco',
-        'USER': 'trco',
-        'PASSWORD': 'trco',
-        'HOST': 'localhost',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'HOST': 'db',  # set in docker-compose.yml
+        'PORT': 5432  # default postgres port
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'trco',
+#         'USER': 'trco',
+#         'PASSWORD': 'trco',
+#         'HOST': 'localhost',
+#     }
+# }
 
 
 # Password validation

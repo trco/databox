@@ -84,25 +84,25 @@ WSGI_APPLICATION = 'setup.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres',
-        'HOST': 'db',  # set in docker-compose.yml
-        'PORT': 5432  # default postgres port
-    }
-}
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'trco',
-#         'USER': 'trco',
-#         'PASSWORD': 'trco',
-#         'HOST': 'localhost',
+#         'NAME': 'postgres',
+#         'USER': 'postgres',
+#         'HOST': 'db',  # set in docker-compose.yml
+#         'PORT': 5432  # default postgres port
 #     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'trco',
+        'USER': 'trco',
+        'PASSWORD': 'trco',
+        'HOST': 'localhost',
+    }
+}
 
 
 # Password validation
@@ -168,10 +168,10 @@ CELERY_RESULT_BACKEND = 'redis://redis:6379'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-# Schedule celery tasks with Celery beat
+# Schedule Celery tasks with Celery beat
 CELERY_BEAT_SCHEDULE = {
-    'google_analytics_fetch_push_data': {
-        'task': 'integrations.tasks.google_analytics_fetch_push_data',
+    'google_analytics_fetch_push': {
+        'task': 'integrations.tasks.google_analytics_fetch_push',
         'schedule': crontab()  # Executes every minute
     }
 }

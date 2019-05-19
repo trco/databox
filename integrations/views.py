@@ -72,29 +72,6 @@ def callback_google(request):
 
     token, profile_id = get_token_and_profile_id(oauth_state, request)
 
-    # oauth = OAuth2Session(
-    #     client_id,
-    #     state=oauth_state,
-    #     redirect_uri=redirect_uri
-    # )
-    # token = oauth.fetch_token(
-    #     'https://accounts.google.com/o/oauth2/token',
-    #     authorization_response=request.build_absolute_uri(),
-    #     client_secret=client_secret
-    # )
-    # print(oauth.get('https://www.googleapis.com/oauth2/v1/userinfo'))
-    # print(token)
-
-    # Get user's Google Analytics profile id
-    # headers = {'Authorization': 'Bearer ' + token['access_token']}
-    # response = requests.get(
-    #     'https://www.googleapis.com/analytics/v3/management/accountSummaries',
-    #     headers=headers).json()
-    # profile_id = response['items'][0]['webProperties'][0]['profiles'][0]['id']
-
-    # profile_id = get_profile_id(token)
-    # print(profile_id)
-
     GoogleOAuth2Token.objects.create(
         user=request.user,
         profile_id=profile_id,
@@ -112,7 +89,7 @@ def callback_google(request):
     )
 
 
-def google_analytics_fetch_push_data(request):
+def google_analytics_fetch_push(request):
     # Get user's GoogleOAuth2Token
     user_token = GoogleOAuth2Token.objects.get(user=request.user)
     headers = {'Authorization': 'Bearer ' + user_token.access_token}
@@ -124,6 +101,7 @@ def google_analytics_fetch_push_data(request):
     fetch_url = '{0}{1}{2}'.format(base, profile, metrics)
 
     # Fetch data from user's Google Analytic profile
+    print(type(requests.get(fetch_url, headers=headers)))
     data = requests.get(fetch_url, headers=headers).json()
     totals = data['totalsForAllResults']
 

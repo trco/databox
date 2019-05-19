@@ -1,4 +1,5 @@
 import re
+import requests
 from unittest.mock import patch
 
 from urllib.parse import unquote
@@ -6,6 +7,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 
 from .models import GoogleOAuth2Token
+from .tasks import (fetch_data_from_google_analytics, push_data_to_databox,
+                    validate_token, refresh_token)
 
 
 class AuthorizeGoogleTest(TestCase):
@@ -116,10 +119,113 @@ class CallbackGoogleTest(TestCase):
             response,
             'Google Analytics succesfully connected.',
         )
-        self.assertEqual(len(tokens), 1)
+        self.assertEqual(tokens.count(), 1)
 
         print('\ntest_callback_google: SUCCESS!')
 
     # 1. Add state to request
     # 2. Patch oauth.fetch_token function
     # 3. Patch requests.get()
+
+
+class GoogleAnalyticsFetchPushTest(TestCase):
+
+    def setUp(self):
+        # Create user
+        self.user = User.objects.create_user(
+            username='user',
+            password='test1234'
+        )
+        # Create token
+        self.token = GoogleOAuth2Token.objects.create(
+            user=self.user,
+            profile_id=123456,
+            access_token='test_access_token',
+            refresh_token='test_refresh_token',
+            expires=3600
+        )
+
+    # Helper function returning json encoded response
+    def response_dict_to_json(self, data):
+        response = requests.Response()
+        response.status_code = 200
+
+        def json_func():
+            return data
+
+        response.json = json_func
+        return response
+
+    @patch('integrations.tasks.requests.get')
+    def test_validate_token(self, mock_get):
+        # Test if token or None returned
+        mock_get.return_value = self.response_dict_to_json(
+            {'error': 'invalid_token'}
+        )
+        token_valid = validate_token(self.token)
+        self.assertEqual(token_valid, None)
+
+        mock_get.return_value = self.response_dict_to_json(
+            {'access_token': 'test_access_token'}
+        )
+        token_valid = validate_token(self.token)
+        self.assertEqual(token_valid, self.token.access_token)
+
+        print('\ntest_validate_token: SUCCESS!')
+
+    @patch('integrations.tasks.get_new_token')
+    def test_refresh_token(self, mock_get_new_token):
+        new_token = {
+                'access_token': 'new_access_token',
+                'expires_at': 7200,
+                'refresh_token': 'new_refresh_token'
+            }
+        mock_get_new_token.return_value = new_token
+
+        refresh_token(self.token)
+
+        self.assertEqual(self.token.access_token, 'new_access_token')
+        self.assertEqual(self.token.expires, 7200)
+        self.assertEqual(self.token.refresh_token, 'new_refresh_token')
+
+        print('\ntest_refresh_token: SUCCESS!')
+
+    @patch('integrations.tasks.requests.get')
+    def test_fetch_data_from_google_analytics(self, mock_get):
+        data = {
+                'totalsForAllResults': {
+                    'ga:users': 10,
+                    'ga:sessions': 10,
+                    'ga:pageviewsPerSession': 15,
+                    'ga:bounces': 5,
+                    'ga:bounceRate': 5,
+                }
+            }
+
+        mock_get.return_value = self.response_dict_to_json(data)
+        returned_data = fetch_data_from_google_analytics(
+            self.token.access_token,
+            self.token.profile_id
+        )
+
+        self.assertEqual(data['totalsForAllResults'], returned_data)
+
+        print('\ntest_fetch_data_from_google_analytics: SUCCESS!')
+
+    @patch('integrations.tasks.client.insert_all')
+    def test_push_data_to_databox(self, mock_insert_all):
+        RESPONSE_ID = 12356
+        mock_insert_all.return_value = RESPONSE_ID
+        data = {
+            'ga:users': 10,
+            'ga:sessions': 10,
+            'ga:pageviewsPerSession': 15,
+            'ga:bounces': 5,
+            'ga:bounceRate': 5,
+        }
+
+        response_id = push_data_to_databox(data)
+
+        self.assertEqual(RESPONSE_ID, response_id)
+
+        print('\ntest_push_data_to_databox: SUCCESS!')

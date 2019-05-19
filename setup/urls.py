@@ -18,5 +18,5 @@ urlpatterns = [
     path('callback/google',
          integrations_views.callback_google,
          name='callback_google'),
-    path('fetch/', integrations_views.google_analytics_fetch_push_data, name='google_analytics_fetch_push_data'),
+    path('fetch/', integrations_views.google_analytics_fetch_push, name='google_analytics_fetch_push'),
 ]

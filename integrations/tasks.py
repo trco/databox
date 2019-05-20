@@ -1,47 +1,49 @@
 import requests
 from datetime import datetime
-from celery.task.schedules import crontab
+
 from celery.decorators import periodic_task
+from celery.task.schedules import crontab
 from databox import Client
 from requests_oauthlib import OAuth2Session
 
+from setup.settings import CLIENT_ID_GA, CLIENT_SECRET_GA, DATABOX_TOKEN
+
 from .models import GoogleOAuth2Token, GithubOAuth2Token, GithubRepository
 
-client_id = '305201098664-3ve83l14nr1grpd0iejhr0ua32n4r4ks.apps.googleusercontent.com'
-client_secret = 'KbaxLRkzXiLktyyeLo1rMIey'
 BASE_URL = 'https://www.googleapis.com/analytics/v3/data/ga?'
 DATES = '&start-date=today&end-date=today'
 METRICS = '&metrics=ga:users,ga:sessions,ga:pageviewsPerSession,ga:bounces,ga:bounceRate'
 QUERYSTRING = '{0}{1}'.format(DATES, METRICS)
-DATABOX_TOKEN = 'sjq01fw3zq95c1aeuj6yw'
 client = Client(DATABOX_TOKEN)
 
 
 # Google Analytics task
 
 @periodic_task(
-    run_every=(crontab(minute='*/1')),  # TODO: Really needed?
-    name='google_analytics_fetch_push',  # TODO: Really needed?
-    # ignore_result=True
+    run_every=(crontab(minute='*/1')),
+    name='google_analytics_fetch_push'
 )
 def google_analytics_fetch_push():
     """Fetch data from Google Analytics and push them to Databox"""
     tokens = GoogleOAuth2Token.objects.all()
 
-    for user_token in tokens:
-        # 1. Validate token
-        access_token = validate_token(user_token)
+    if tokens:
+        for user_token in tokens:
+            # 1. Validate token
+            access_token = validate_token(user_token)
 
-        if not access_token:
-            access_token = refresh_token(user_token)
+            if not access_token:
+                access_token = refresh_token(user_token)
 
-        # 2. Fetch data from Google Analytics
-        fetched_data = fetch_data_from_ganalytics(access_token, user_token.profile_id)
+            # 2. Fetch data from Google Analytics
+            fetched_data = fetch_data_from_ganalytics(access_token, user_token.profile_id)
 
-        # 3. Push data to Databox
-        push_id = push_ganalytics_data_to_databox(fetched_data)
+            # 3. Push data to Databox
+            push_id = push_ganalytics_data_to_databox(fetched_data)
 
-        return fetched_data, 'push_id: {0}'.format(push_id)
+            return fetched_data, 'push_id: {0}'.format(push_id)
+    else:
+        return 'Skipped'
 
 
 # Google Analytics helper functions
@@ -58,9 +60,6 @@ def fetch_data_from_ganalytics(access_token, profile_id):
     fetched_data = response.json()
 
     data = fetched_data['totalsForAllResults']
-    # data = fetched_data['rows']
-
-    print('Fetching data...')
 
     return data
 
@@ -77,8 +76,6 @@ def push_ganalytics_data_to_databox(fd):
         {'key': 'GA Bounce Rate', 'value': fd['ga:bounceRate'], 'date': today},
     ])
 
-    print('Data pushed to Databox!')
-
     return response_id
 
 
@@ -88,8 +85,6 @@ def validate_token(user_token):
                     'access_token={0}'.format(user_token.access_token))
     response = requests.get(VALIDATE_URL).json()
     token_valid = True if 'error' not in response else False
-
-    print('Validating token...')
 
     return user_token.access_token if token_valid else None
 
@@ -104,8 +99,6 @@ def refresh_token(user_token):
     user_token.refresh_token = new_token['refresh_token']
     user_token.save()
 
-    print('Refreshing token...')
-
     return new_token['access_token']
 
 
@@ -114,11 +107,11 @@ def get_new_token(user_token):
     refresh_token = {'refresh_token': user_token.refresh_token}
 
     extra = {
-        'client_id': client_id,
-        'client_secret': client_secret,
+        'client_id': CLIENT_ID_GA,
+        'client_secret': CLIENT_SECRET_GA,
     }
 
-    oauth = OAuth2Session(client_id, token=refresh_token)
+    oauth = OAuth2Session(CLIENT_ID_GA, token=refresh_token)
     new_token = oauth.refresh_token(REFRESH_URL, **extra)
 
     return new_token
@@ -127,29 +120,32 @@ def get_new_token(user_token):
 # Github task
 
 @periodic_task(
-    run_every=(crontab(minute='*/1')),  # TODO: Really needed?
-    name='github_fetch_push',  # TODO: Really needed?
-    # ignore_result=True
+    run_every=(crontab(minute='*/1')),
+    name='github_fetch_push'
 )
 def github_fetch_push():
     """Fetch data from Github and push them to Databox"""
     tokens = GithubOAuth2Token.objects.all()
 
-    fetched_data_list = []
+    if tokens:
+        fetched_data_list = []
 
-    for user_token in tokens:
-        # Get user's activated repositories
-        repositories = GithubRepository.objects.filter(user=user_token.user)
+        for user_token in tokens:
+            # Get user's activated repositories
+            repositories = GithubRepository.objects.filter(user=user_token.user)
 
-        for repo in repositories:
-            # 1. Fetch data for repository
-            fetched_data = fetch_data_from_github(user_token, repo)
-            fetched_data_list.append(fetched_data)
+            for repo in repositories:
+                # 1. Fetch data for repository
+                fetched_data = fetch_data_from_github(user_token, repo)
+                fetched_data_list.append(fetched_data)
 
-            # 2. Push data for the repository to Databox
-            push_github_data_to_databox(fetched_data)
+                # 2. Push data for the repository to Databox
+                push_github_data_to_databox(fetched_data)
 
-    return fetched_data_list, 'username: {0}'.format(user_token.username)
+        return fetched_data_list, 'username: {0}'.format(user_token.username)
+
+    else:
+        return 'Skipped'
 
 
 # Github helper functions
@@ -166,9 +162,6 @@ def fetch_data_from_github(user_token, repository):
     response = requests.get(FETCH_URL, headers=headers)
     fetched_data = response.json()
 
-    print(fetched_data)
-
-    # data = fetched_data['totalsForAllResults']
     data = {
         'repo': REPO,
         'forks_count': fetched_data['forks_count'],
@@ -177,8 +170,6 @@ def fetch_data_from_github(user_token, repository):
         'open_issues_count': fetched_data['open_issues_count'],
         'subscribers_count': fetched_data['subscribers_count']
     }
-
-    print('Fetching data...')
 
     return data
 
@@ -194,7 +185,5 @@ def push_github_data_to_databox(fd):
         {'key': fd['repo'] + ' open_issues_count', 'value': fd['open_issues_count'], 'date': today},
         {'key': fd['repo'] + ' subscribers_count', 'value': fd['subscribers_count'], 'date': today},
     ])
-
-    print('Data pushed to Databox!')
 
     return response_id

@@ -6,11 +6,15 @@ from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse
 
+from setup.settings import CLIENT_ID_GA, CLIENT_SECRET_GA
+
 from .models import GoogleOAuth2Token
 
-client_id = '305201098664-3ve83l14nr1grpd0iejhr0ua32n4r4ks.apps.googleusercontent.com'
-client_secret = 'KbaxLRkzXiLktyyeLo1rMIey'
-redirect_uri = 'http://127.0.0.1:8000/callback/google'
+REDIRECT_URI = 'http://127.0.0.1:8000/callback/google'
+SCOPE = 'https://www.googleapis.com/auth/analytics.readonly'
+AUTHORIZATION_URL = 'https://accounts.google.com/o/oauth2/auth'
+TOKEN_URL = 'https://accounts.google.com/o/oauth2/token'
+SUMMARIES_URL = 'https://www.googleapis.com/analytics/v3/management/accountSummaries'
 
 
 # Authorize access to Google Analytics account
@@ -20,13 +24,13 @@ def authorize_google(request):
 
     if not authorized:
         oauth = OAuth2Session(
-            client_id,
-            redirect_uri=redirect_uri,
-            scope=['https://www.googleapis.com/auth/analytics.readonly']
+            CLIENT_ID_GA,
+            redirect_uri=REDIRECT_URI,
+            scope=[SCOPE]
         )
 
         authorization_url, state = oauth.authorization_url(
-            'https://accounts.google.com/o/oauth2/auth',
+            AUTHORIZATION_URL,
             access_type="offline",
             prompt="select_account"
         )
@@ -45,18 +49,18 @@ def authorize_google(request):
 
 def get_token_and_profile_id(oauth_state, request):
     oauth = OAuth2Session(
-        client_id,
+        CLIENT_ID_GA,
         state=oauth_state,
-        redirect_uri=redirect_uri
+        redirect_uri=REDIRECT_URI
     )
     token = oauth.fetch_token(
-        'https://accounts.google.com/o/oauth2/token',
+        TOKEN_URL,
         authorization_response=request.build_absolute_uri(),
-        client_secret=client_secret
+        client_secret=CLIENT_SECRET_GA
     )
     headers = {'Authorization': 'Bearer ' + token['access_token']}
     response = requests.get(
-        'https://www.googleapis.com/analytics/v3/management/accountSummaries',
+        SUMMARIES_URL,
         headers=headers).json()
     profile_id = response['items'][0]['webProperties'][0]['profiles'][0]['id']
     return token, profile_id

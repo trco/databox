@@ -6,13 +6,14 @@ from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse
 
+from setup.settings import CLIENT_ID_GITHUB, CLIENT_SECRET_GITHUB
+
 from .models import GithubOAuth2Token
 
-client_id = '389a66a5bc2dbc0dac13'
-client_secret = 'e72e1fd84e79b145845320f7250240c60db918e8'
-token_url = 'https://github.com/login/oauth/access_token'
-redirect_uri = 'http://127.0.0.1:8000/callback/github'
-authorization_base_url = 'https://github.com/login/oauth/authorize'
+TOKEN_URL = 'https://github.com/login/oauth/access_token'
+REDIRECT_URI = 'http://127.0.0.1:8000/callback/github'
+AUTHORIZATION_URL = 'https://github.com/login/oauth/authorize'
+USER_URL = 'https://api.github.com/user'
 
 
 # Authorize access to Github account
@@ -21,10 +22,10 @@ def authorize_github(request):
     authorized = GithubOAuth2Token.objects.filter(user=request.user)
 
     if not authorized:
-        oauth = OAuth2Session(client_id)
+        oauth = OAuth2Session(CLIENT_ID_GITHUB)
 
         authorization_url, state = oauth.authorization_url(
-            authorization_base_url
+            AUTHORIZATION_URL
         )
 
         request.session['oauth_state'] = state
@@ -41,14 +42,14 @@ def authorize_github(request):
 
 def get_token(oauth_state, request):
     oauth = OAuth2Session(
-        client_id,
+        CLIENT_ID_GITHUB,
         state=oauth_state,
-        redirect_uri=redirect_uri
+        redirect_uri=REDIRECT_URI
     )
     token = oauth.fetch_token(
-        token_url,
+        TOKEN_URL,
         authorization_response=request.build_absolute_uri(),
-        client_secret=client_secret
+        client_secret=CLIENT_SECRET_GITHUB
     )
 
     return token
@@ -57,7 +58,6 @@ def get_token(oauth_state, request):
 def get_github_username(token):
     """ Get user's username at Github """
     headers = {'Authorization': 'Bearer ' + token['access_token']}
-    USER_URL = 'https://api.github.com/user'
     response = requests.get(USER_URL, headers=headers).json()
     username = response['login']
     repos_url = response['repos_url']

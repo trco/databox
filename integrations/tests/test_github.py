@@ -10,11 +10,7 @@ from django.test import TestCase
 import integrations
 
 from ..models import GithubOAuth2Token, GithubRepository
-from ..tasks import (fetch_data_from_ganalytics,
-                     push_ganalytics_data_to_databox,
-                     validate_token,
-                     refresh_token,
-                     fetch_data_from_github,
+from ..tasks import (fetch_data_from_github,
                      push_github_data_to_databox)
 
 

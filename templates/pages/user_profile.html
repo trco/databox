@@ -15,8 +15,8 @@
           {% if not google_authorized %}
             <a href="{% url 'authorize_google' %}">Connect</a>
           {% else %}
-            <strong>Connected</strong>
-            <a href="{% url 'disconnect_google' %}">Disconnect</a>
+            <strong class="text-success">Connected</strong>
+            <a class="text-danger" href="{% url 'disconnect_google' %}">Disconnect</a>
           {% endif %}
         </div>
         <div>
@@ -24,14 +24,14 @@
           {% if not github_authorized %}
             <a href="{% url 'authorize_github' %}">Connect</a>
           {% else %}
-            <strong>Connected</strong>
-            <a href="{% url 'disconnect_github' %}">Disconnect</a>
+            <strong class="text-success">Connected</strong>
+            <a class="text-danger" href="{% url 'disconnect_github' %}">Disconnect</a>
             <div>
               {% if github_repos %}
                 <p class="mt-3 mb-0">Your activated Github repositories:</p>
                 {% for repo in github_repos %}
                   <p class="mb-1"><strong>{{ repo.name }}</strong></p>
-                  <span><a href="{% url 'deactivate_github_repository' repo.id %}">Deactivate</a></span>
+                  <span><a class="text-danger" href="{% url 'deactivate_github_repository' repo.id %}">Deactivate</a></span>
                 {% endfor %}
                 <div class="mt-3">
                   <a href="{% url 'activate_another_github_repository' %}">

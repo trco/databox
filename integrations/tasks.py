@@ -19,7 +19,7 @@ client = Client(DATABOX_TOKEN)
 # Helper functions
 
 
-def fetch_data_from_google_analytics(access_token, profile_id):
+def fetch_data_from_ganalytics(access_token, profile_id):
     """Fetch data from user's Google Analytics profile"""
     headers = {'Authorization': 'Bearer ' + access_token}
 
@@ -38,7 +38,7 @@ def fetch_data_from_google_analytics(access_token, profile_id):
     return data
 
 
-def push_data_to_databox(fetched_data):
+def push_ganalytics_data_to_databox(fetched_data):
     """Push data to Databox"""
     today = datetime.today().strftime('%Y-%m-%d')
 
@@ -111,8 +111,8 @@ def google_analytics_fetch_push():
         access_token = validate_token(user_token)
         if not access_token:
             access_token = refresh_token(user_token)
-        fetched_data = fetch_data_from_google_analytics(access_token, user_token.profile_id)
-        push_id = push_data_to_databox(fetched_data)
+        fetched_data = fetch_data_from_ganalytics(access_token, user_token.profile_id)
+        push_id = push_ganalytics_data_to_databox(fetched_data)
 
         return fetched_data, 'push_id: {0}'.format(push_id)
 

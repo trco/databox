@@ -22,7 +22,6 @@ urlpatterns = [
     path('callback/google',
          integrations_views.callback_google,
          name='callback_google'),
-    path('fetch/', integrations_views.google_analytics_fetch_push, name='google_analytics_fetch_push'),
 
     # Github integration urls
     path('authorize/github',
@@ -37,5 +36,4 @@ urlpatterns = [
     path('activate-another-repository/github',
          pages_views.activate_another_github_repository,
          name='activate_another_github_repository'),
-    # path('fetch/', integrations_views.google_analytics_fetch_push, name='google_analytics_fetch_push'),
 ]

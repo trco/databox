@@ -95,3 +95,47 @@ def activate_another_github_repository(request):
     repos_list = request.session['repos_list']
 
     return HttpResponseRedirect(reverse('select_github_repository'))
+
+
+def disconnect_google(request):
+    token = GoogleOAuth2Token.objects.get(user=request.user)
+    token.delete()
+
+    messages.success(request, 'Google Analytics succesfully disconnected.')
+
+    return HttpResponseRedirect(reverse(
+            'user_profile',
+            args=[request.user.username]
+        )
+    )
+
+
+def disconnect_github(request):
+    token = GithubOAuth2Token.objects.get(user=request.user)
+    token.delete()
+
+    repos = GithubRepository.objects.filter(user=request.user)
+    if repos:
+        for repo in repos:
+            repo.delete()
+
+    messages.success(request, 'Github and all the repositories succesfully disconnected.')
+
+    return HttpResponseRedirect(reverse(
+            'user_profile',
+            args=[request.user.username]
+        )
+    )
+
+
+def deactivate_github_repository(request, repo_id):
+    repo = GithubRepository.objects.get(id=repo_id)
+    messages.success(request, 'Repository {0} succesfully deactivated.'.format(repo.name))
+
+    repo.delete()
+
+    return HttpResponseRedirect(reverse(
+            'user_profile',
+            args=[request.user.username]
+        )
+    )

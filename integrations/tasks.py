@@ -16,8 +16,35 @@ QUERYSTRING = '{0}{1}'.format(DATES, METRICS)
 DATABOX_TOKEN = 'sjq01fw3zq95c1aeuj6yw'
 client = Client(DATABOX_TOKEN)
 
-# Helper functions
 
+# Google Analytics task
+
+@periodic_task(
+    run_every=(crontab(minute='*/1')),  # TODO: Really needed?
+    name='google_analytics_fetch_push',  # TODO: Really needed?
+    # ignore_result=True
+)
+def google_analytics_fetch_push():
+    """Fetch data from Google Analytics and push them to Databox"""
+    tokens = GoogleOAuth2Token.objects.all()
+
+    for user_token in tokens:
+        # 1. Validate token
+        access_token = validate_token(user_token)
+
+        if not access_token:
+            access_token = refresh_token(user_token)
+
+        # 2. Fetch data from Google Analytics
+        fetched_data = fetch_data_from_ganalytics(access_token, user_token.profile_id)
+
+        # 3. Push data to Databox
+        push_id = push_ganalytics_data_to_databox(fetched_data)
+
+        return fetched_data, 'push_id: {0}'.format(push_id)
+
+
+# Google Analytics helper functions
 
 def fetch_data_from_ganalytics(access_token, profile_id):
     """Fetch data from user's Google Analytics profile"""
@@ -38,16 +65,16 @@ def fetch_data_from_ganalytics(access_token, profile_id):
     return data
 
 
-def push_ganalytics_data_to_databox(fetched_data):
+def push_ganalytics_data_to_databox(fd):
     """Push data to Databox"""
     today = datetime.today().strftime('%Y-%m-%d')
 
     response_id = client.insert_all([
-        {'key': 'GA Users', 'value': fetched_data['ga:users'], 'date': today},
-        {'key': 'GA Sessions', 'value': fetched_data['ga:sessions'], 'date': today},
-        {'key': 'GA Page Views Per Session', 'value': fetched_data['ga:pageviewsPerSession'], 'date': today},
-        {'key': 'GA Bounces', 'value': fetched_data['ga:bounces'], 'date': today},
-        {'key': 'GA Bounce Rate', 'value': fetched_data['ga:bounceRate'], 'date': today},
+        {'key': 'GA Users', 'value': fd['ga:users'], 'date': today},
+        {'key': 'GA Sessions', 'value': fd['ga:sessions'], 'date': today},
+        {'key': 'GA Page Views Per Session', 'value': fd['ga:pageviewsPerSession'], 'date': today},
+        {'key': 'GA Bounces', 'value': fd['ga:bounces'], 'date': today},
+        {'key': 'GA Bounce Rate', 'value': fd['ga:bounceRate'], 'date': today},
     ])
 
     print('Data pushed to Databox!')
@@ -67,21 +94,6 @@ def validate_token(user_token):
     return user_token.access_token if token_valid else None
 
 
-def get_new_token(user_token):
-    REFRESH_URL = 'https://accounts.google.com/o/oauth2/token'
-    refresh_token = {'refresh_token': user_token.refresh_token}
-
-    extra = {
-        'client_id': client_id,
-        'client_secret': client_secret,
-    }
-
-    oauth = OAuth2Session(client_id, token=refresh_token)
-    new_token = oauth.refresh_token(REFRESH_URL, **extra)
-
-    return new_token
-
-
 def refresh_token(user_token):
     """Refresh user's token"""
     new_token = get_new_token(user_token)
@@ -97,29 +109,23 @@ def refresh_token(user_token):
     return new_token['access_token']
 
 
-@periodic_task(
-    run_every=(crontab(minute='*/1')),  # TODO: Really needed?
-    name='google_analytics_fetch_push',  # TODO: Really needed?
-    # ignore_result=True
-)
-def google_analytics_fetch_push():
-    """Fetch data from Google Analytics and push them to Databox"""
-    tokens = GoogleOAuth2Token.objects.all()
+def get_new_token(user_token):
+    REFRESH_URL = 'https://accounts.google.com/o/oauth2/token'
+    refresh_token = {'refresh_token': user_token.refresh_token}
 
-    for user_token in tokens:
-        # TODO: Update token if expired
-        access_token = validate_token(user_token)
-        if not access_token:
-            access_token = refresh_token(user_token)
-        fetched_data = fetch_data_from_ganalytics(access_token, user_token.profile_id)
-        push_id = push_ganalytics_data_to_databox(fetched_data)
+    extra = {
+        'client_id': client_id,
+        'client_secret': client_secret,
+    }
 
-        return fetched_data, 'push_id: {0}'.format(push_id)
+    oauth = OAuth2Session(client_id, token=refresh_token)
+    new_token = oauth.refresh_token(REFRESH_URL, **extra)
+
+    return new_token
 
 
-# -----------
 # Github task
-# -----------
+
 @periodic_task(
     run_every=(crontab(minute='*/1')),  # TODO: Really needed?
     name='github_fetch_push',  # TODO: Really needed?
@@ -132,14 +138,21 @@ def github_fetch_push():
     fetched_data_list = []
 
     for user_token in tokens:
+        # Get user's activated repositories
         repositories = GithubRepository.objects.filter(user=user_token.user)
+
         for repo in repositories:
+            # 1. Fetch data for repository
             fetched_data = fetch_data_from_github(user_token, repo)
             fetched_data_list.append(fetched_data)
+
+            # 2. Push data for the repository to Databox
             push_github_data_to_databox(fetched_data)
 
     return fetched_data_list, 'username: {0}'.format(user_token.username)
 
+
+# Github helper functions
 
 def fetch_data_from_github(user_token, repository):
     """Fetch data from user's Github profile"""

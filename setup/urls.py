@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 
-from integrations import views as integrations_views
-from integrations import github_integration
+from integrations import ganalytics
+from integrations import github
 from pages import views as pages_views
 
 urlpatterns = [
@@ -17,18 +17,21 @@ urlpatterns = [
 
     # Google Analytics integration urls
     path('authorize/google',
-         integrations_views.authorize_google,
+         ganalytics.authorize_google,
          name='authorize_google'),
     path('callback/google',
-         integrations_views.callback_google,
+         ganalytics.callback_google,
          name='callback_google'),
+    path('disconnect/google',
+         pages_views.disconnect_google,
+         name='disconnect_google'),
 
     # Github integration urls
     path('authorize/github',
-         github_integration.authorize_github,
+         github.authorize_github,
          name='authorize_github'),
     path('callback/github',
-         github_integration.callback_github,
+         github.callback_github,
          name='callback_github'),
     path('select-repository/github',
          pages_views.select_github_repository,
@@ -36,4 +39,10 @@ urlpatterns = [
     path('activate-another-repository/github',
          pages_views.activate_another_github_repository,
          name='activate_another_github_repository'),
+    path('disconnect/github',
+         pages_views.disconnect_github,
+         name='disconnect_github'),
+    path('deactivate-repository/github/<int:repo_id>',
+         pages_views.deactivate_github_repository,
+         name='deactivate_github_repository'),
 ]

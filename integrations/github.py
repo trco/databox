@@ -1,9 +1,8 @@
-from databox import Client
 import requests
 from requests_oauthlib import OAuth2Session
 
 from django.contrib import messages
-from django.http import HttpResponseRedirect, JsonResponse, HttpResponseBadRequest
+from django.http import HttpResponseRedirect, HttpResponseBadRequest
 from django.shortcuts import redirect
 from django.urls import reverse
 
@@ -55,6 +54,23 @@ def get_token(oauth_state, request):
     return token
 
 
+def get_github_username(token):
+    """ Get user's username at Github """
+    headers = {'Authorization': 'Bearer ' + token['access_token']}
+    USER_URL = 'https://api.github.com/user'
+    response = requests.get(USER_URL, headers=headers).json()
+    username = response['login']
+    repos_url = response['repos_url']
+    return username, repos_url, headers
+
+
+def get_user_repositories(token, repos_url, headers, request):
+    """ Get all user repositories at Github """
+    repos = requests.get(repos_url, headers=headers).json()
+    repos_list = [repo['name'] for repo in repos]
+    return repos_list
+
+
 # Get & create access token
 def callback_github(request):
     try:
@@ -62,20 +78,16 @@ def callback_github(request):
     except KeyError:
         return HttpResponseBadRequest('Missing OAuth2 state.')
 
+    # Get user's token
     token = get_token(oauth_state, request)
-
-    # Get Github username
-    headers = {'Authorization': 'Bearer ' + token['access_token']}
-    USER_URL = 'https://api.github.com/user'
-    response = requests.get(USER_URL, headers=headers).json()
-    username = response['login']
-
-    # Get user repositories
-    REPOS_URL = response['repos_url']
-    repos = requests.get(REPOS_URL, headers=headers).json()
-    repos_list = [repo['name'] for repo in repos]
+    # Get user's username at Github
+    username, repos_url, headers = get_github_username(token)
+    # Save user's repositories to session
+    repos_list = get_user_repositories(token, repos_url, headers, request)
+    # Save repositories to session
     request.session['repos_list'] = repos_list
 
+    # Create user's GithubOAuth2Token
     GithubOAuth2Token.objects.create(
         user=request.user,
         username=username,

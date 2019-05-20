@@ -43,7 +43,7 @@ class AuthorizeGoogleAnalyticsTest(TestCase):
             'prompt=select_account',
         ]
         p_in_params = [p in redirect_url for p in params]
-        self.assertTrue(any(p_in_params))
+        self.assertFalse(False in p_in_params)
 
         # Check if state parameter in redirect_uri equals state passed to session
         # Find state value in redirect_uri
@@ -54,7 +54,7 @@ class AuthorizeGoogleAnalyticsTest(TestCase):
         session = self.client.session
         self.assertEqual(session['oauth_state'], state)
 
-        print('\ntest_authorization_doesnt_exist: SUCCESS!')
+        print('\nGOOGLE ANALYTICS: test_authorization_doesnt_exist: SUCCESS!')
 
     # Logged in user visits '/authorize/google' although already authorized
     def test_authorization_exists(self):
@@ -81,7 +81,7 @@ class AuthorizeGoogleAnalyticsTest(TestCase):
             'Google Analytics already connected!',
         )
 
-        print('\ntest_authorization_exists: SUCCESS!')
+        print('\nGOOGLE ANALYTICS: test_authorization_exists: SUCCESS!')
 
 
 class CallbackGoogleAnalyticsTest(TestCase):
@@ -99,7 +99,7 @@ class CallbackGoogleAnalyticsTest(TestCase):
         session['oauth_state'] = 'test_state'
         session.save()
 
-    @patch('integrations.views.get_token_and_profile_id')
+    @patch('integrations.ganalytics.get_token_and_profile_id')
     def test_callback_google(self, mock_get_token_and_profile_id):
         # Mock token and profile_id returned
         mock_get_token_and_profile_id.return_value = (
@@ -138,7 +138,7 @@ class CallbackGoogleAnalyticsTest(TestCase):
         self.assertEqual(token.expires, 3600)
         self.assertEqual(token.refresh_token, 'test_refresh_token')
 
-        print('\ntest_callback_google: SUCCESS!')
+        print('\nGOOGLE ANALYTICS: test_callback_google: SUCCESS!')
 
 
 class GoogleAnalyticsFetchPushTest(TestCase):
@@ -187,7 +187,7 @@ class GoogleAnalyticsFetchPushTest(TestCase):
         token_valid = validate_token(self.token)
         self.assertEqual(token_valid, self.token.access_token)
 
-        print('\ntest_validate_token: SUCCESS!')
+        print('\nGOOGLE ANALYTICS: test_validate_token: SUCCESS!')
 
     @patch('integrations.tasks.get_new_token')
     def test_refresh_token(self, mock_get_new_token):
@@ -211,7 +211,7 @@ class GoogleAnalyticsFetchPushTest(TestCase):
         self.assertEqual(self.token.expires, 7200)
         self.assertEqual(self.token.refresh_token, 'new_refresh_token')
 
-        print('\ntest_refresh_token: SUCCESS!')
+        print('\nGOOGLE ANALYTICS: test_refresh_token: SUCCESS!')
 
     @patch('integrations.tasks.requests.get')
     def test_fetch_data_from_ganalytics(self, mock_get):
@@ -247,7 +247,7 @@ class GoogleAnalyticsFetchPushTest(TestCase):
             {'Authorization': 'Bearer test_access_token'}
         )
 
-        print('\ntest_fetch_data_from_ganalytics: SUCCESS!')
+        print('\nGOOGLE ANALYTICS: test_fetch_data_from_ganalytics: SUCCESS!')
 
     @patch('integrations.tasks.client.insert_all')
     def test_push_ganalytics_data_to_databox(self, mock_insert_all):
@@ -281,4 +281,4 @@ class GoogleAnalyticsFetchPushTest(TestCase):
         ]
         self.assertEqual(inserted_data_tuple[0], inserted_data)
 
-        print('\ntest_push_ganalytics_data_to_databox: SUCCESS!')
+        print('\nGOOGLE ANALYTICS: test_push_ganalytics_data_to_databox: SUCCESS!')
